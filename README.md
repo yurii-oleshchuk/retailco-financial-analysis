@@ -207,12 +207,7 @@ jupyter notebook notebooks/
 
 ## 👤 Autor / Author
 
-**Yurii Oleshchuk**
-
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?logo=linkedin)](https://linkedin.com/in/yurii-oleshchuk)
-[![GitHub](https://img.shields.io/badge/GitHub-Follow-black?logo=github)](https://github.com/yurii-oleshchuk)
-
----
+Yurii Oleshchuk
 
 ## 📄 Lizenz / License
 

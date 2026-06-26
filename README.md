@@ -182,7 +182,7 @@ retailco-financial-analysis/
 
 ```bash
 # Repository klonen / Clone repository
-git clone https://github.com/yurii-dataflow/retailco-financial-analysis.git
+git clone https://github.com/yurii-oleshchuk/retailco-financial-analysis.git
 cd retailco-financial-analysis
 
 # Abhängigkeiten installieren / Install dependencies

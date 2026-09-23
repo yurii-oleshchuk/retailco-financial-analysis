@@ -98,7 +98,7 @@ retailco-financial-analysis/
 | 📊 Monthly P&L (GuV) | Monatliche GuV 2015 mit RAG-Farben / Monthly P&L 2015 with RAG colors |
 | 📋 Annual Closing | Jahresabschluss 2011–2016 / Annual closing 2011–2016 |
 | 📐 Accruals | ARAP/PRAP Berechnung / Accruals calculation |
-| 🗃️ Raw Data | 300 Rohtransaktionen als Datenbasis / 300 raw transactions as data basis |
+| 🗃️ Raw Data | 24443 (the 2015 year) Rohtransaktionen als Datenbasis / 24443 (the 2015 year) raw transactions as data basis |
 | 🧮 Excel Calculations | SUMIFS-Formeln — Python vs. Excel Vergleich / SUMIFS formulas — Python vs. Excel |
 | 📊 KPI Dashboard | KPI-Tabelle + 4 Diagramme / KPI table + 4 charts |
 | 📋 Plan-Ist Vergleich | Monatl. Budget vs. Actual mit RAG / Monthly budget vs. actual with RAG |

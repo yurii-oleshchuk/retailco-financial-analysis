@@ -1,0 +1,7 @@
+Purchase Spend: 4824720.920000
+Planned Spend: 4771530.230000
+PPV: 53190.690000
+PPV %: 0.011148
+Suppliers: 12
+Purchase Orders: 900
+Average PO Value: 5360.801022

@@ -1,4 +1,4 @@
-# RetailCo Finance & Procurement Controlling
+# RetailCo — Data Analytics, Finance & Controlling
 ### Bilingual Portfolio Project | Zweisprachiges Portfolio-Projekt — Accounting, Controlling, Einkauf & BI
 
 ## 🇩🇪 Deutsch

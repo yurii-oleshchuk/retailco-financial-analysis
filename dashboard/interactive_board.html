@@ -252,7 +252,7 @@
     </div>
     <div class="grid2">
       <div class="panel">
-        <h3>Rolling Forecast Q4 2015 / Rolling Forecast Q4 2015</h3>
+        <h3>Rollierender Forecast Q4 2015 / Rolling Forecast Q4 2015</h3>
         <p class="sub">Methode: 2013-Saisonalität × Jan–Sep 2015 YTD-Wachstum / Method: 2013 seasonality × Jan–Sep 2015 YTD growth</p>
         <div class="chartwrap"><canvas id="chartForecast"></canvas></div>
       </div>
@@ -282,7 +282,9 @@
       <div class="panel">
         <h3>Einkaufsvolumen &amp; PPV je Monat / Monthly Spend &amp; PPV</h3>
         <p class="sub">2015, alle Warengruppen / all categories</p>
-        <div class="chartwrap"><canvas id="chartProcMonthly"></canvas></div>
+        <div class="chartwrap" style="height:160px;"><canvas id="chartProcMonthly"></canvas></div>
+        <p class="sub" style="margin:10px 0 2px;">PPV je Monat / Monthly PPV · <span style="color:#C1121F">rot = teurer als Plan / above plan</span>, <span style="color:#2D6A4F">grün = günstiger / below plan</span></p>
+        <div class="chartwrap" style="height:120px;"><canvas id="chartProcPPV"></canvas></div>
       </div>
       <div class="panel">
         <h3>Einkaufsvolumen nach Warengruppe / Spend by Category</h3>
@@ -329,7 +331,7 @@ Chart.defaults.font.size = 11;
 Chart.defaults.color = '#5B6472';
 
 const fmtM = v => (v/1e6).toFixed(2) + 'M';
-const fmtK = v => Math.abs(v) >= 1000 ? (v/1000).toFixed(1)+'K' : v.toFixed(0);
+const fmtK = v => Math.abs(v) >= 1e6 ? (v/1e6).toFixed(2)+'M' : (Math.abs(v) >= 1000 ? (v/1000).toFixed(1)+'K' : v.toFixed(0));
 const fmtPct = v => (v>0?'+':'') + v.toFixed(2) + '%';
 const monthsDE = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
 
@@ -358,11 +360,16 @@ function annualFor(year, country, category='__all__'){
   const revenue_plan=sum(rows,'revenue_plan'), profit_plan=sum(rows,'profit_plan'), orders=sum(rows,'orders');
   const prevRows=salesRows(year-1,country,category);
   const prevRevenue=sum(prevRows,'revenue'), prevProfit=sum(prevRows,'profit');
-  return {
+  // YoY nur bei identischer Abdeckung (Monat x Warengruppe) / only if prior year covers the same month x category cells
+  const cellSet=r=>new Set(r.map(d=>d.year_month.slice(5)+'|'+d.product_category));
+  const cur=cellSet(rows), prv=cellSet(prevRows);
+  const comparable=prevRows.length>0 && cur.size===prv.size && [...cur].every(k=>prv.has(k));
+  const yoyStatus=!prevRows.length ? 'base' : (comparable ? 'ok' : 'n/a');
+  return {yoyStatus,
     fiscal_year:year, revenue, cost, profit, revenue_plan, profit_plan, orders,
     margin_pct: revenue ? profit/revenue*100 : 0,
-    revenue_yoy: prevRevenue ? (revenue/prevRevenue-1)*100 : null,
-    profit_yoy: prevProfit ? (profit/prevProfit-1)*100 : null,
+    revenue_yoy: comparable && prevRevenue ? (revenue/prevRevenue-1)*100 : null,
+    profit_yoy: comparable && prevProfit ? (profit/prevProfit-1)*100 : null,
     rev_var_pct: revenue_plan ? (revenue/revenue_plan-1)*100 : 0
   };
 }
@@ -373,8 +380,8 @@ function showScopeNote(){
   const note=document.createElement('span');
   note.id='filterScopeNote';
   note.className='sub';
-  note.style.marginLeft='12px';
-  note.textContent='Year + Country + Category apply to Finance & Controlling sales data; Forecast is a 2015 all-country/all-category benchmark; Procurement is a separate synthetic 2015 dataset.';
+  note.style.cssText='display:block;flex-basis:100%;width:100%;margin:6px 0 0;font-size:11.5px;line-height:1.4;';
+  note.textContent='Filter wirken nur auf Finance & Controlling; Forecast und Procurement sind feste 2015-Datensätze. / Filters apply to Finance & Controlling only; Forecast and Procurement are fixed 2015 datasets.';
   tag.parentNode.appendChild(note);
 }
 
@@ -422,9 +429,10 @@ function render(){
   showScopeNote();
 
   // ---------- Finance KPIs: year + country ----------
+  const yoyTxt=(v,st)=>v!=null ? fmtPct(v)+' YoY' : (st==='base' ? 'Basisjahr / Base' : 'YoY n/a · Vorjahr nicht vergleichbar / prior year not comparable');
   const fKpis = a ? [
-    kpiCard('Umsatz','Revenue','$'+fmtM(a.revenue),a.revenue_yoy!=null?fmtPct(a.revenue_yoy)+' YoY':'Basisjahr / Base',a.revenue_yoy>0?'pos':(a.revenue_yoy<0?'neg':'flat')),
-    kpiCard('Bruttoergebnis','Gross Profit','$'+fmtM(a.profit),a.profit_yoy!=null?fmtPct(a.profit_yoy)+' YoY':'Basisjahr / Base',a.profit_yoy>0?'pos':(a.profit_yoy<0?'neg':'flat')),
+    kpiCard('Umsatz','Revenue','$'+fmtM(a.revenue),yoyTxt(a.revenue_yoy,a.yoyStatus),a.revenue_yoy>0?'pos':(a.revenue_yoy<0?'neg':'flat')),
+    kpiCard('Bruttoergebnis','Gross Profit','$'+fmtM(a.profit),yoyTxt(a.profit_yoy,a.yoyStatus),a.profit_yoy>0?'pos':(a.profit_yoy<0?'neg':'flat')),
     kpiCard('Bruttomarge','Gross Margin',a.margin_pct.toFixed(1)+'%',null,'flat'),
     kpiCard('Plan-Abweichung','vs Synthetic Plan',fmtPct(a.rev_var_pct),a.rev_var_pct>=0?'über Plan / above plan':'unter Plan / below plan',a.rev_var_pct>0?'pos':(a.rev_var_pct<0?'neg':'flat')),
     kpiCard('Bestellungen','Orders',a.orders.toLocaleString('de-DE'),null,'flat'),
@@ -515,17 +523,31 @@ function render(){
     return {...x,product_category,db_i,db_quote:x.umsatz?db_i/x.umsatz*100:0,umsatz_ant:a&&a.revenue?x.umsatz/a.revenue*100:0};
   });
   document.getElementById('dbSub').textContent=`${year} · ${countryLabel} · ${categoryLabel} · DB I = Revenue − COGS`;
+  const dbLabels={id:'dbLabels',afterDatasetsDraw(ch){
+    const {ctx}=ch, meta=ch.getDatasetMeta(0);
+    ctx.save(); ctx.textAlign='center'; ctx.fillStyle='#1f2937';
+    meta.data.forEach((bar,i)=>{
+      const d=db[i]; if(!d) return;
+      ctx.font='600 13px sans-serif';
+      ctx.fillText(fmtM(d.db_i),bar.x,bar.y-22);
+      ctx.font='12px sans-serif'; ctx.fillStyle='#b45309';
+      ctx.fillText('DB-Quote '+d.db_quote.toFixed(1)+' %',bar.x,bar.y-7);
+      ctx.fillStyle='#1f2937';
+    });
+    ctx.restore();
+  }};
   upsertChart('chartDB',{
     type:'bar',
     data:{labels:db.map(d=>d.product_category),datasets:[
-      {label:'DB I',data:db.map(d=>d.db_i),backgroundColor:COLORS.blue,borderRadius:4},
-      {label:'DB-Quote % (Achse rechts)',data:db.map(d=>d.db_quote),type:'line',yAxisID:'y1',
-       borderColor:COLORS.amber,backgroundColor:COLORS.amber,tension:.3,pointRadius:4}
+      {label:'DB I',data:db.map(d=>d.db_i),backgroundColor:COLORS.blue,borderRadius:4}
     ]},
+    plugins:[dbLabels],
     options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{position:'top',labels:{boxWidth:10}}},
-      scales:{y:{ticks:{callback:v=>fmtM(v)},grid:{color:COLORS.grid}},
-              y1:{position:'right',ticks:{callback:v=>v+'%'},grid:{display:false}},
+      layout:{padding:{top:34}},
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:c=>`DB I: ${Number(c.parsed.y).toLocaleString('en-US')}`,
+                            afterLabel:c=>`DB-Quote: ${db[c.dataIndex].db_quote.toFixed(1)} %`}}},
+      scales:{y:{ticks:{callback:v=>fmtM(v)},grid:{color:COLORS.grid},grace:'8%'},
               x:{grid:{display:false}}}}
   });
 
@@ -534,7 +556,7 @@ function render(){
   const forecastGrid=forecastBox.querySelector('.grid2');
   const existingNotice=document.getElementById('forecastFilterNotice');
   if(existingNotice) existingNotice.remove();
-  if(year!==2015 || country!=='__all__' || category!=='__all__' || category!=='__all__'){
+  if(year!==2015 || country!=='__all__' || category!=='__all__'){
     clearChart('chartForecast');
     document.getElementById('forecastTable').innerHTML='';
     const n=document.createElement('div');
@@ -548,14 +570,14 @@ function render(){
     const octRows=Object.entries(octJan).sort((a,b)=>a[0].localeCompare(b[0]));
     const fcLabels=[...octRows.map(([k])=>monthsDE[parseInt(k.split('-')[1],10)-1]),...fc.map(d=>monthsDE[parseInt(d.year_month_str.split('-')[1],10)-1])];
     const actualSeries=[...octRows.map(([,d])=>d.revenue),...fc.map(()=>null)];
-    const forecastSeries=[...octRows.map(()=>null),octRows[octRows.length-1].revenue,...fc.map(d=>d.revenue_forecast)];
+    const forecastSeries=[...octRows.slice(0,-1).map(()=>null),octRows[octRows.length-1][1].revenue,...fc.map(d=>d.revenue_forecast)];
     upsertChart('chartForecast',{
       type:'line',data:{labels:fcLabels,datasets:[
         {label:'Ist / Actual (Jan–Sep)',data:actualSeries,borderColor:COLORS.blue,backgroundColor:COLORS.blue,tension:.25,spanGaps:false},
         {label:'Forecast (Okt–Dez)',data:forecastSeries,borderColor:COLORS.amber,backgroundColor:COLORS.amber,borderDash:[6,4],tension:.25,spanGaps:true}
       ]},
       options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{position:'top',labels:{boxWidth:10}}},
+        plugins:{legend:{position:'top',labels:{boxWidth:10,usePointStyle:true}}},
         scales:{y:{ticks:{callback:v=>fmtM(v)},grid:{color:COLORS.grid}},x:{grid:{display:false}}}}
     });
     document.getElementById('forecastTable').innerHTML=
@@ -578,14 +600,18 @@ function render(){
     kpiCard('PPV','Purchase Price Variance','$'+fmtK(pPPV),fmtPct(pPPV/pPlanned*100),pPPV>0?'neg':'pos'),
     kpiCard('Lieferanten','Suppliers',pSuppliers,null,'flat'),
     kpiCard('Bestellungen','Purchase Orders',pPOs,null,'flat'),
-    kpiCard('Ø Bestellwert','Avg PO Value','$'+(pTotalSpend/pPOs).toFixed(0),null,'flat')
+    kpiCard('Ø Bestellwert','Avg PO Value','$'+Math.round(pTotalSpend/pPOs).toLocaleString('de-DE'),null,'flat')
   ].join('');
   const pm=[...DATA.proc_monthly].sort((x,y)=>x.Year_Month.localeCompare(y.Year_Month));
-  upsertChart('chartProcMonthly',{data:{labels:pm.map(d=>monthsDE[parseInt(d.Year_Month.split('-')[1],10)-1]),datasets:[
-    {type:'bar',label:'Spend',data:pm.map(d=>d.Purchase_Spend),backgroundColor:COLORS.med,borderRadius:3},
-    {type:'line',label:'PPV',data:pm.map(d=>d.PPV),yAxisID:'y1',borderColor:COLORS.red,backgroundColor:COLORS.red,tension:.3,pointRadius:3}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{boxWidth:10}}},
-    scales:{y:{ticks:{callback:v=>fmtK(v)},grid:{color:COLORS.grid}},y1:{position:'right',ticks:{callback:v=>fmtK(v)},grid:{display:false}},x:{grid:{display:false}}}}});
+  const pmLabels=pm.map(d=>monthsDE[parseInt(d.Year_Month.split('-')[1],10)-1]);
+  upsertChart('chartProcMonthly',{type:'bar',data:{labels:pmLabels,datasets:[
+    {label:'Spend',data:pm.map(d=>d.Purchase_Spend),backgroundColor:COLORS.med,borderRadius:3}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{y:{ticks:{callback:v=>fmtK(v)},grid:{color:COLORS.grid}},x:{grid:{display:false}}}}});
+  upsertChart('chartProcPPV',{type:'bar',data:{labels:pmLabels,datasets:[
+    {label:'PPV',data:pm.map(d=>d.PPV),backgroundColor:pm.map(d=>d.PPV>0?COLORS.red:COLORS.green),borderRadius:3}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{y:{ticks:{callback:v=>fmtK(v)},grid:{color:COLORS.grid}},x:{grid:{display:false}}}}});
   const pc=[...DATA.proc_category].sort((x,y)=>y.Purchase_Spend-x.Purchase_Spend);
   upsertChart('chartProcCategory',{type:'bar',data:{labels:pc.map(d=>d.Category),datasets:[{label:'Spend',data:pc.map(d=>d.Purchase_Spend),backgroundColor:COLORS.blue,borderRadius:4}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>fmtM(v)},grid:{color:COLORS.grid}},x:{grid:{display:false}}}}});
